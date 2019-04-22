@@ -3,28 +3,30 @@
 let VF = Vex.Flow;
 
 let element = document.getElementById("output_notes");
+let possibleNote = "cdefgab";
 let possibleArray = [];
+let isBassKey = false;
 let currentNote = "";
 
 window.addEventListener("load", function () {
-    document.getElementById("button_next").addEventListener("click", nextButtonPressed);
     document.getElementById("button_reload").addEventListener("click", initiateArray);
     initiateArray();
+    drawInElement(createRandomNote());
 })
 
-window.addEventListener("keydown", keyDownFunction);
-
-function keyDownFunction(e) {
-    var input = String.fromCharCode(e.keyCode);
+window.addEventListener("keydown", function(e) {
+    let input = String.fromCharCode(e.keyCode);
+    if (possibleNote.indexOf(input.toLowerCase()) == -1)
+        return;
+    let resultElement = document.getElementById("result");
     if (input.toUpperCase() == currentNote.toUpperCase())
-        console.log("yeah");
+        resultElement.innerText = "richtig! das war ein " + currentNote;
     else
-        console.log("nope, richtig wäre " + currentNote)
-    nextButtonPressed();
-}
+        resultElement.innerText = "nope, richtig wäre " + currentNote;
+    drawInElement(createRandomNote());
+})
 
 let initiateArray = function () {
-    let possibleNote = "cdefgab";
     let lowest = document.getElementById("input_low").value;
     let highest = document.getElementById("input_high").value;
 
@@ -44,17 +46,22 @@ let initiateArray = function () {
             possibleArray.push(c + "/" + i);
         }
     }
-}
 
-let nextButtonPressed = function () {
-    drawInElement(createRandomNote());
+    isBassKey = document.getElementById("input_key_bass").checked;
 }
 
 function createRandomNote() {
     let key = possibleArray[Math.floor(Math.random() * possibleArray.length)];
+    while (key.charAt(0) == currentNote)
+        key = possibleArray[Math.floor(Math.random() * possibleArray.length)];
     currentNote = key.charAt(0);
-    //document.getElementById("button_next").innerText = key;
-    return new VF.StaveNote({ keys: [key], duration: "q" });
+    let Note;
+    if (isBassKey)
+        Note = new VF.StaveNote({clef: "bass", keys: [key], duration: "q" });
+    else
+        Note = new VF.StaveNote({clef: "treble", keys: [key], duration: "q" });
+    //Note.setStyle({fillStyle: "blue", strokeStyle: "blue"});
+    return Note;
 }
 
 function drawInElement(note) {
@@ -70,7 +77,10 @@ function drawInElement(note) {
     let stave = new VF.Stave(10, 40, 100);
 
     // Add a clef and time signature.
-    stave.addClef("treble").addTimeSignature("4/4");
+    if (isBassKey)
+        stave.addClef("bass").addTimeSignature("4/4");
+    else
+        stave.addClef("treble").addTimeSignature("4/4");
 
     // Connect it to the rendering context and draw!
     stave.setContext(context).draw();
