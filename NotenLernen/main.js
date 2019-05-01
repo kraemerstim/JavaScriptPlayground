@@ -9,55 +9,62 @@ let renderer;
 let game;
 
 class Renderer {
-    constructor(element, configuration) {
+    constructor(element) {
         this.element = element;
-        this.configuration = configuration;
+
+        this.setup();
     }
 
-    render(note) {
-        let noteObject = this.createNoteFromString(note);
-        this.element.innerHTML = "";
+    setup() {
         let renderer = new VF.Renderer(this.element, VF.Renderer.Backends.SVG);
 
         // Configure the rendering context.
         renderer.resize(500, 500);
-        let context = renderer.getContext();
-        context.setFont("Arial", 10, "").setBackgroundFillStyle("#eed");
+        this.context = renderer.getContext(); 
+        this.context.setFont("Arial", 10, "").setBackgroundFillStyle("#eed");  
+    }
+
+
+    render(notes) {
+        this.context.clear();
+
+        let notesObject = this.createNoteFromString(notes);
 
         // Create a stave of width 400 at position 10, 40 on the canvas.
         let stave = new VF.Stave(10, 40, 100);
 
         // Add a clef and time signature.
-        if (this.configuration.isBassKey)
-            stave.addClef("bass").addTimeSignature("4/4");
+        if (configuration.isBassKey)
+            stave.addClef("bass");//.addTimeSignature("4/4");
         else
-            stave.addClef("treble").addTimeSignature("4/4");
+            stave.addClef("treble");//.addTimeSignature("4/4");
 
         // Connect it to the rendering context and draw!
-        stave.setContext(context).draw();
+        stave.setContext(this.context).draw();
 
         // Create the notes
-        let notes = [noteObject];
+        let vfNotes = [notesObject];
 
         // Create a voice in 4/4 and add above notes
-        let voice = new VF.Voice({ num_beats: 1, beat_value: 4 });
-        voice.addTickables(notes);
+        let voice = new VF.Voice().setMode(VF.Voice.Mode.SOFT);
+        //voice.setMode(Voice.Mode.SOFT)
+        voice.addTickables(vfNotes);
 
-        var beams = VF.Beam.generateBeams(notes);
+        var beams = VF.Beam.generateBeams(vfNotes);
 
         // Format and justify the notes to 400 pixels.
-        let formatter = new VF.Formatter().joinVoices([voice]).format([voice], 150);
+        let formatter = new VF.Formatter().joinVoices([voice]).format([voice], 80);
 
         // Render voice
-        voice.draw(context, stave);
+        voice.draw(this.context, stave);
     }
 
-    createNoteFromString(note) {
+    createNoteFromString(notes) {
         let noteObject;
         if (configuration.isBassKey)
-            noteObject = new VF.StaveNote({ clef: "bass", keys: [note], duration: "q" });
+            noteObject = new VF.StaveNote({ clef: "bass", keys: notes, duration: "q" });
         else
-            noteObject = new VF.StaveNote({ clef: "treble", keys: [note], duration: "q" });
+            noteObject = new VF.StaveNote({ clef: "treble", keys: notes, duration: "q" });
         //Note.setStyle({fillStyle: "blue", strokeStyle: "blue"});
         return noteObject;
     }
@@ -96,11 +103,17 @@ class Configuration {
 }
 
 class Game {
-    createRandomNote() {
-        let key = configuration.possibleArray[Math.floor(Math.random() * configuration.possibleArray.length)];
+    createRandomNotes(count) {
+        let key = []
+        for (let i = 0; i < count; i++)
+        {
+             key.push(configuration.possibleArray[Math.floor(Math.random() * configuration.possibleArray.length)]);
+        }
+        /*
         while (key.charAt(0) == currentNote)
             key = configuration.possibleArray[Math.floor(Math.random() * configuration.possibleArray.length)];
-        this.currentNote = key.charAt(0);
+        */
+        this.currentNote = 'a'; //key.charAt(0);
         return key;
     }
 }
@@ -108,12 +121,12 @@ class Game {
 window.addEventListener("load", function () {
     configuration = new Configuration();
     game = new Game();
-    renderer = new Renderer(document.getElementById("output_notes"), configuration);
-    renderer.render(game.createRandomNote())
-    document.getElementById("button_reload").addEventListener("click", () => { configuration.setup(); renderer.render(game.createRandomNote()) });
+    renderer = new Renderer(document.getElementById("output_notes"));
+    renderer.render(game.createRandomNotes(3))
+    document.getElementById("button_reload").addEventListener("click", () => { configuration.setup(); renderer.render(game.createRandomNotes(3)) });
 })
 
-window.addEventListener("keydown", function (e) {
+window.addEventListener("keydown", (e) => {
     let input = String.fromCharCode(e.keyCode);
     if (possibleNote.indexOf(input.toLowerCase()) == -1)
         return;
@@ -122,5 +135,5 @@ window.addEventListener("keydown", function (e) {
         resultElement.innerText = "richtig! das war ein " + game.currentNote;
     else
         resultElement.innerText = "nope, richtig wäre " + game.currentNote;
-    renderer.render(configuration.createRandomNote());
+    renderer.render(game.createRandomNotes(3));
 })
